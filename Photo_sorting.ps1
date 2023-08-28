@@ -1,6 +1,9 @@
 # Prompt the user to enter a folder path
 $folderPath = Read-Host "Enter the folder path"
 
+# Regular expression pattern to match years after 2000 (2001 to 2099)
+$yearPattern = "20\d{2}"
+
 # Check if the entered path is valid
 if (Test-Path -Path $folderPath -PathType Container) {
     # Get a list of files within the specified folder
@@ -25,6 +28,12 @@ if (Test-Path -Path $folderPath -PathType Container) {
         Write-Host "Files in the folder:"
         foreach ($file in $files) {
             Write-Host $file.Name
+            $fileMatches = [regex]::Matches($file.Name, $yearPattern)
+            if ($fileMatches.Count -gt 0) {
+                Write-Host "File $($file.Name) contains a year: $($fileMatches[0].Value)"
+            } else {
+                Write-Host "File $($file.Name) does not contain a year."
+            }
         }
     } else {
         Write-Host "No files found in the folder."
