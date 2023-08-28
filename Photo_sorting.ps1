@@ -1,11 +1,17 @@
-$folderPath = Read-Host "Enter the folder path"
+Add-Type -AssemblyName System.Windows.Forms
+
+$openFolderDialog = New-Object System.Windows.Forms.FolderBrowserDialog
+$openFolderDialog.Description = "Select the source directory"
+$dialogResult = $openFolderDialog.ShowDialog()
 $yearPattern = "20\d{2}"
 
-if (Test-Path -Path $folderPath -PathType Container) {
+if ($dialogResult -eq [System.Windows.Forms.DialogResult]::OK) {
+    $folderPath = $openFolderDialog.SelectedPath
+
     $files = Get-ChildItem -Path $folderPath -File
 
     if ($files.Count -gt 0) {
-        $newFolderPath = Join-Path -Path $folderPath -ChildPath "Sorted_Photos"
+        $newFolderPath = Join-Path -Path $folderPath -ChildPath "Sorted Photos"
 
         if (Test-Path -Path $newFolderPath -PathType Container) {
             Write-Host "The folder 'sorted Photos' already exists."
@@ -13,9 +19,7 @@ if (Test-Path -Path $folderPath -PathType Container) {
             New-Item -Path $newFolderPath -ItemType Directory
             Write-Host "The folder 'Sorted_Photos' has been created."
         }
-        Write-Host "Files in the folder:"
         foreach ($file in $files) {
-            Write-Host $file.Name
             $fileMatches = [regex]::Matches($file.Name, $yearPattern)
             
             if ($fileMatches.Count -gt 0) {
@@ -38,7 +42,7 @@ if (Test-Path -Path $folderPath -PathType Container) {
         Write-Host "No files found in the folder."
     }
 } else {
-    Write-Host "Invalid folder path."
+    Write-Host "No source directory selected."
 }
 
 Read-Host -Prompt "Press Enter to exit"
