@@ -1,0 +1,1 @@
+The script contained in the repository is designed to organize photos by their respective years. It is tailored to process photos that already include a designated year within their filenames. If you're unfamiliar with executing PowerShell scripts, you can alternatively utilize the provided .exe executable file.
