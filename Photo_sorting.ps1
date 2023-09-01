@@ -25,6 +25,10 @@ $folderBrowserButton.Text = "Choose Source Folder"
 $folderBrowserButton.Location = New-Object System.Drawing.Point(100, 80)
 $folderBrowserButton.Width = 200
 $folderBrowserButton.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Regular)
+
+$destinationFolder = $null
+$loadingForm = $null
+
 $folderBrowserButton.Add_Click({
     $openFolderDialog = New-Object System.Windows.Forms.FolderBrowserDialog
     $openFolderDialog.Description = "Select the source directory"
@@ -53,7 +57,7 @@ $folderBrowserButton.Add_Click({
         $destinationFolderButton = New-Object System.Windows.Forms.Button
         $destinationFolderButton.Text = "Choose Destination Folder"
         $destinationFolderButton.Location = New-Object System.Drawing.Point(100, 80)
-        $destinationFolderButton.Width = 200
+        $destinationFolderButton.Width = 250
         $destinationFolderButton.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Regular)
         $destinationFolderButton.Add_Click({
             $openFolderDialog = New-Object System.Windows.Forms.FolderBrowserDialog
@@ -61,13 +65,43 @@ $folderBrowserButton.Add_Click({
             $result = $openFolderDialog.ShowDialog()
 
             if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
-                $destinationFolderPath = $openFolderDialog.SelectedPath
-                Write-Host "Selected Destination Folder: $destinationFolderPath"
+                $destinationFolder = $openFolderDialog.SelectedPath
+                Write-Host "Selected Destination Folder: $destinationFolder"
+                $destinationForm.Close()
+                
+                # Create a loading form with a progress bar
+                $loadingForm = New-Object System.Windows.Forms.Form
+                $loadingForm.Text = "Loading..."
+                $loadingForm.Width = 300
+                $loadingForm.Height = 150
+                $loadingForm.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+                $loadingForm.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+                $loadingForm.ControlBox = $false
 
+                $loadingLabel = New-Object System.Windows.Forms.Label
+                $loadingLabel.Text = "Copying files and sorting..."
+                $loadingLabel.Location = New-Object System.Drawing.Point(10, 20)
+                $loadingLabel.Width = $loadingForm.Width - 20
+                $loadingLabel.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
+
+                $progressBar = New-Object System.Windows.Forms.ProgressBar
+                $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Marquee
+                $progressBar.Location = New-Object System.Drawing.Point(10, 50)
+                $progressBar.Width = $loadingForm.Width - 40
+
+                $loadingForm.Controls.Add($loadingLabel)
+                $loadingForm.Controls.Add($progressBar)
+
+                # Show the loading form asynchronously
+                $loadingForm.Show()
+
+                Start-Sleep -Seconds 1 # Simulate some processing time (remove this line in production)
+                
+                # Actual processing logic (copy files, sort, etc.) here
                 $files = Get-ChildItem -Path $sourceFolderPath -File
 
                 if ($files.Count -gt 0) {
-                    $newFolderPath = Join-Path -Path $destinationFolderPath -ChildPath "Sorted Photos"
+                    $newFolderPath = Join-Path -Path $destinationFolder -ChildPath "Sorted Photos"
 
                     if (Test-Path -Path $newFolderPath -PathType Container) {
                         Write-Host "The folder 'Sorted Photos' already exists."
@@ -75,6 +109,9 @@ $folderBrowserButton.Add_Click({
                         New-Item -Path $newFolderPath -ItemType Directory
                         Write-Host "The folder 'Sorted Photos' has been created."
                     }
+
+                    $totalFiles = $files.Count
+                    $progress = 0
 
                     foreach ($file in $files) {
                         $fileMatches = [regex]::Matches($file.Name, $yearPattern)
@@ -89,19 +126,25 @@ $folderBrowserButton.Add_Click({
 
                             $targetFilePath = Join-Path -Path $targetDirectory -ChildPath $file.Name
 
-                            Copy-Item -Path $file.FullName -Destination $targetFilePath -Force
+                            Copy-Item -Path $file.FullName -Destination $targetFilePath -Force        
                             Write-Host "File $($file.Name) containing year $year has been copied to $targetDirectory."
                         } else {
                             Write-Host "File $($file.Name) does not contain a year."
                         }
+
+                        # Update progress bar
+                        $progress++
+                        $percentComplete = ($progress / $totalFiles) * 100
+                        $progressBar.Value = $percentComplete
                     }
+
                     Show-SuccessDialog
-                    $destinationForm.Close()
                 } else {
                     Show-ErrorDialog
-                    Write-Host "Error."
-                    $destinationForm.Close()
                 }
+
+                # Close the loading form when processing is complete
+                $loadingForm.Close()
             }
         })
 
